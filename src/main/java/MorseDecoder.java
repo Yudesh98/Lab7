@@ -53,14 +53,23 @@ public class MorseDecoder {
 
         double[] sampleBuffer = new double[BIN_SIZE * inputFile.getNumChannels()];
         for (int binIndex = 0; binIndex < totalBinCount; binIndex++) {
+            double powerSum = 0.0;
+            inputFile.readFrames(sampleBuffer, BIN_SIZE * inputFile.getNumChannels());
+            for (int i = 0; i < sampleBuffer.length; i++) {
+                powerSum += sampleBuffer[i];
+            }
+            returnBuffer[binIndex] = powerSum;
             // Get the right number of samples from the inputFile
             // Sum all the samples together and store them in the returnBuffer
+        }
+        for (double returns : returnBuffer) {
+            System.out.println(returns);
         }
         return returnBuffer;
     }
 
-    /** Power threshold for power or no power. You may need to modify this value. */
-    private static final double POWER_THRESHOLD = 10;
+    /** Power threshold for power or no power. */
+    private static final double POWER_THRESHOLD = 5;
 
     /** Bin threshold for dots or dashes. Related to BIN_SIZE. You may need to modify this value. */
     private static final int DASH_BIN_COUNT = 8;
@@ -81,13 +90,36 @@ public class MorseDecoder {
          * There are four conditions to handle. Symbols should only be output when you see
          * transitions. You will also have to store how much power or silence you have seen.
          */
+        String output = "";
+        int powerChain = 0;
+        int silenceChain = 0;
+        for (int i = 0; i < powerMeasurements.length; i++) {
+            if (Math.abs(powerMeasurements[i]) > POWER_THRESHOLD) {
+                if (silenceChain > DASH_BIN_COUNT) {
+                    output += " ";
+                }
+                powerChain++;
+                silenceChain = 0;
+            } else {
+                if (powerChain > 0 && powerChain < DASH_BIN_COUNT) {
+                    output += ".";
+                } else if (powerChain > DASH_BIN_COUNT) {
+                    output += "-";
+                }
+                silenceChain++;
+                powerChain = 0;
+            }
+            System.out.println("'" + output + "'");
+
+
+        }
 
         // if ispower and waspower
         // else if ispower and not waspower
         // else if issilence and wassilence
         // else if issilence and not wassilence
 
-        return "";
+        return output;
     }
 
     /**
